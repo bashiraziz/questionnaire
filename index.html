@@ -9,39 +9,42 @@
             --primary: #2563eb; --danger: #ef4444; --success: #16a34a;
             --bg: #f8fafc; --card: #ffffff; --text: #1e293b; --border: #e2e8f0;
         }
-        body { font-family: 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 20px; }
-        .container { max-width: 850px; margin: 0 auto; background: var(--card); padding: 30px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        body { font-family: 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 20px; line-height: 1.5; }
+        .container { max-width: 850px; margin: 0 auto; background: var(--card); padding: 40px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
         
         /* Navigation Tabs */
         .tabs { display: flex; gap: 10px; margin-bottom: 25px; border-bottom: 2px solid var(--border); padding-bottom: 10px; }
-        .tab-btn { padding: 10px 20px; border: none; background: none; cursor: pointer; font-weight: 600; color: #64748b; border-radius: 6px; }
+        .tab-btn { padding: 10px 20px; border: none; background: none; cursor: pointer; font-weight: 600; color: #64748b; border-radius: 6px; transition: 0.2s; }
         .tab-btn.active { background: var(--primary); color: white; }
+        .tab-btn:hover:not(.active) { background: #e2e8f0; }
         
         header { border-bottom: 2px solid var(--border); margin-bottom: 25px; padding-bottom: 20px; }
-        .meta-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
-        .input-group { display: flex; flex-direction: column; margin-bottom: 10px; }
-        label { font-weight: 600; font-size: 0.85rem; margin-bottom: 4px; color: #64748b; }
-        input { padding: 8px; border: 1px solid var(--border); border-radius: 6px; }
+        .meta-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+        .input-group { display: flex; flex-direction: column; }
+        label { font-weight: 600; font-size: 0.85rem; margin-bottom: 5px; color: #64748b; }
+        input { padding: 10px; border: 1px solid var(--border); border-radius: 6px; font-size: 1rem; }
         
-        .instructions { background: #eff6ff; padding: 15px; border-left: 4px solid var(--primary); margin-bottom: 20px; font-size: 0.9rem; }
-        .question-row { padding: 12px 0; border-bottom: 1px solid var(--border); }
-        .options { display: flex; justify-content: space-between; margin-top: 8px; }
-        .option { text-align: center; flex: 1; font-size: 0.7rem; cursor: pointer; }
+        .instructions { background: #eff6ff; padding: 15px; border-left: 4px solid var(--primary); margin-bottom: 25px; font-size: 0.95rem; }
+        .question-row { padding: 15px 0; border-bottom: 1px solid var(--border); }
+        .options { display: flex; justify-content: space-between; margin-top: 10px; }
+        .option { text-align: center; flex: 1; font-size: 0.75rem; cursor: pointer; }
         
         /* Results Section */
-        .results-area { display: none; margin-top: 30px; padding: 20px; border-radius: 8px; background: #f0fdf4; border: 2px solid var(--success); }
-        .assessment-text { display: none; margin-top: 15px; font-size: 0.9rem; line-height: 1.4; }
+        .results-area { display: none; margin-top: 30px; padding: 25px; border-radius: 8px; background: #f0fdf4; border: 2px solid var(--success); }
+        .score-summary { font-size: 1.2rem; margin-bottom: 15px; border-bottom: 1px solid #bcf0da; padding-bottom: 10px; }
+        .interpretation-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 20px; }
+        .stage-card { background: white; padding: 15px; border-radius: 6px; border: 1px solid #dcfce7; font-size: 0.9rem; }
 
-        .action-btns { display: flex; gap: 10px; margin-top: 30px; }
-        .btn { flex: 1; padding: 12px; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; color: white; }
+        .action-btns { display: flex; gap: 10px; margin-top: 40px; }
+        .btn { flex: 1; padding: 15px; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; color: white; font-size: 1rem; }
         .btn-calc { background: var(--primary); }
         .btn-print { background: #475569; }
-        .btn-clear { background: var(--danger); max-width: 150px; }
+        .btn-clear { background: var(--danger); max-width: 120px; }
 
         @media print {
             .tabs, .action-btns, .instructions, .btn-clear { display: none !important; }
             body { padding: 0; background: white; }
-            .container { box-shadow: none; border: none; width: 100%; max-width: none; }
+            .container { box-shadow: none; border: none; width: 100%; max-width: none; padding: 0; }
             .question-row { page-break-inside: avoid; }
         }
     </style>
@@ -52,42 +55,53 @@
     <div class="tabs">
         <button class="tab-btn active" onclick="switchMode('simple', this)">Simple Form</button>
         <button class="tab-btn" onclick="switchMode('scored', this)">With Scoring</button>
-        <button class="tab-btn" onclick="switchMode('assessment', this)">With Full Assessment</button>
+        <button class="tab-btn" onclick="switchMode('assessment', this)">With Assessment</button>
     </div>
 
     <header>
-        <h1 id="main-title" style="margin:0; font-size: 1.5rem; color: var(--primary);">Questionnaire</h1>
-        <div class="meta-grid" style="margin-top: 15px;">
-            <div class="input-group"><label>Client Name</label><input type="text" id="clientName"></div>
+        <h1 id="main-title" style="margin:0; color: var(--primary);">Questionnaire</h1>
+        <div class="meta-grid" style="margin-top: 20px;">
+            <div class="input-group"><label>Client Name</label><input type="text" id="cName"></div>
             <div class="input-group"><label>Date</label><input type="date"></div>
+            <div class="input-group"><label>Client ID</label><input type="text"></div>
+            <div class="input-group"><label>Clinician</label><input type="text"></div>
         </div>
     </header>
 
     <div class="instructions">
-        Select 1 (Strongly Disagree) to 5 (Strongly Agree).
+        <strong>How to complete:</strong> Select the number that best describes your feelings right now.<br>
+        1 = Strongly Disagree | 2 = Disagree | 3 = Unsure | 4 = Agree | 5 = Strongly Agree
     </div>
 
     <form id="mainForm">
         <div id="questions-list"></div>
 
         <div class="results-area" id="results-box">
-            <h3 style="margin-top:0">Calculation Results</h3>
-            <div id="scoreDisplay"></div>
-            <div id="assessmentDisplay" class="assessment-text">
-                <hr style="border: 0; border-top: 1px solid #bcf0da; margin: 15px 0;">
-                <p><strong>Stage Explanations:</strong></p>
-                <small>
-                    • <strong>Precontemplation:</strong> Not yet acknowledging a need for change.<br>
-                    • <strong>Contemplation:</strong> Thinking about change but feeling ambivalent.<br>
-                    • <strong>Action:</strong> Actively taking steps to change behavior.<br>
-                    • <strong>Maintenance:</strong> Working to sustain changes and prevent relapse.
-                </small>
+            <h2 style="margin-top:0; color: var(--success);">Assessment Results</h2>
+            <div id="scoreDisplay" class="score-summary"></div>
+            
+            <div id="assessmentDisplay">
+                <h3 style="margin-bottom:10px;">Understanding the Stages</h3>
+                <div class="interpretation-grid">
+                    <div class="stage-card">
+                        <strong>Precontemplation:</strong> Indicates a lack of awareness that a problem exists or a reluctance to change.
+                    </div>
+                    <div class="stage-card">
+                        <strong>Contemplation:</strong> Shows you are thinking about your problem and considering the possibility of change.
+                    </div>
+                    <div class="stage-card">
+                        <strong>Action:</strong> Reflects that you are actively taking steps and working hard to change the problem.
+                    </div>
+                    <div class="stage-card">
+                        <strong>Maintenance:</strong> Indicates you have made changes and are focused on preventing a relapse.
+                    </div>
+                </div>
             </div>
         </div>
 
         <div class="action-btns">
             <button type="button" class="btn btn-clear" onclick="resetForm()">Clear</button>
-            <button type="button" id="calcBtn" class="btn btn-calc" style="display:none;" onclick="calculate()">Calculate</button>
+            <button type="button" id="calcBtn" class="btn btn-calc" style="display:none;" onclick="calculate()">Calculate Scores</button>
             <button type="button" class="btn btn-print" onclick="window.print()">Download PDF / Print</button>
         </div>
     </form>
@@ -133,20 +147,38 @@
     function calculate() {
         const formData = new FormData(document.getElementById('mainForm'));
         const scores = Array.from(formData.values()).map(Number);
-        if (scores.length < 32) { alert("Please answer all questions."); return; }
+        
+        if (scores.length < 32) { 
+            alert("Please answer all 32 questions before calculating."); 
+            return; 
+        }
 
         const pre = [1, 5, 11, 13, 23, 26, 29, 32].reduce((a, b) => a + scores[b-1], 0) / 8;
         const cont = [2, 4, 8, 12, 15, 19, 21, 24].reduce((a, b) => a + scores[b-1], 0) / 8;
         const act = [3, 7, 10, 14, 17, 20, 25, 30].reduce((a, b) => a + scores[b-1], 0) / 8;
         const maint = [6, 9, 16, 18, 22, 27, 28, 31].reduce((a, b) => a + scores[b-1], 0) / 8;
+        
         const readiness = (cont + act + maint) - pre;
+        let level = readiness < 8 ? "Low Readiness" : (readiness < 11 ? "Moderate Readiness" : "High Readiness");
 
         document.getElementById('results-box').style.display = 'block';
-        document.getElementById('scoreDisplay').innerHTML = `<strong>Readiness Score: ${readiness.toFixed(2)}</strong><br><small>Pre: ${pre.toFixed(1)} | Cont: ${cont.toFixed(1)} | Act: ${act.toFixed(1)} | Maint: ${maint.toFixed(1)}</small>`;
+        document.getElementById('scoreDisplay').innerHTML = `
+            <strong>Total Readiness Score: ${readiness.toFixed(2)} (${level})</strong><br>
+            <span style="font-size: 0.9rem; color: #64748b;">
+                Precontemplation: ${pre.toFixed(1)} | Contemplation: ${cont.toFixed(1)} | 
+                Action: ${act.toFixed(1)} | Maintenance: ${maint.toFixed(1)}
+            </span>
+        `;
+        window.scrollTo({ top: document.getElementById('results-box').offsetTop - 50, behavior: 'smooth' });
     }
 
     function resetForm() {
-        if(confirm("Clear all answers?")) { document.getElementById('mainForm').reset(); document.getElementById('results-box').style.display = 'none'; window.scrollTo(0,0); }
+        if(confirm("Are you sure you want to clear the entire form?")) { 
+            document.getElementById('mainForm').reset(); 
+            document.querySelectorAll('input[type="text"], input[type="date"]').forEach(i => i.value = '');
+            document.getElementById('results-box').style.display = 'none'; 
+            window.scrollTo(0,0); 
+        }
     }
 </script>
 </body>
