@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Readiness to Change Tool</title>
+    <style>
+        :root {
+            --primary: #2563eb; --danger: #ef4444; --success: #16a34a;
+            --bg: #f8fafc; --card: #ffffff; --text: #1e293b; --border: #e2e8f0;
+        }
+        body { font-family: 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 20px; }
+        .container { max-width: 850px; margin: 0 auto; background: var(--card); padding: 30px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        
+        /* Navigation Tabs */
+        .tabs { display: flex; gap: 10px; margin-bottom: 25px; border-bottom: 2px solid var(--border); padding-bottom: 10px; }
+        .tab-btn { padding: 10px 20px; border: none; background: none; cursor: pointer; font-weight: 600; color: #64748b; border-radius: 6px; }
+        .tab-btn.active { background: var(--primary); color: white; }
+        
+        header { border-bottom: 2px solid var(--border); margin-bottom: 25px; padding-bottom: 20px; }
+        .meta-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
+        .input-group { display: flex; flex-direction: column; margin-bottom: 10px; }
+        label { font-weight: 600; font-size: 0.85rem; margin-bottom: 4px; color: #64748b; }
+        input { padding: 8px; border: 1px solid var(--border); border-radius: 6px; }
+        
+        .instructions { background: #eff6ff; padding: 15px; border-left: 4px solid var(--primary); margin-bottom: 20px; font-size: 0.9rem; }
+        .question-row { padding: 12px 0; border-bottom: 1px solid var(--border); }
+        .options { display: flex; justify-content: space-between; margin-top: 8px; }
+        .option { text-align: center; flex: 1; font-size: 0.7rem; cursor: pointer; }
+        
+        /* Results Section */
+        .results-area { display: none; margin-top: 30px; padding: 20px; border-radius: 8px; background: #f0fdf4; border: 2px solid var(--success); }
+        .assessment-text { display: none; margin-top: 15px; font-size: 0.9rem; line-height: 1.4; }
+
+        .action-btns { display: flex; gap: 10px; margin-top: 30px; }
+        .btn { flex: 1; padding: 12px; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; color: white; }
+        .btn-calc { background: var(--primary); }
+        .btn-print { background: #475569; }
+        .btn-clear { background: var(--danger); max-width: 150px; }
+
+        @media print {
+            .tabs, .action-btns, .instructions, .btn-clear { display: none !important; }
+            body { padding: 0; background: white; }
+            .container { box-shadow: none; border: none; width: 100%; max-width: none; }
+            .question-row { page-break-inside: avoid; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="tabs">
+        <button class="tab-btn active" onclick="switchMode('simple', this)">Simple Form</button>
+        <button class="tab-btn" onclick="switchMode('scored', this)">With Scoring</button>
+        <button class="tab-btn" onclick="switchMode('assessment', this)">With Full Assessment</button>
+    </div>
+
+    <header>
+        <h1 id="main-title" style="margin:0; font-size: 1.5rem; color: var(--primary);">Questionnaire</h1>
+        <div class="meta-grid" style="margin-top: 15px;">
+            <div class="input-group"><label>Client Name</label><input type="text" id="clientName"></div>
+            <div class="input-group"><label>Date</label><input type="date"></div>
+        </div>
+    </header>
+
+    <div class="instructions">
+        Select 1 (Strongly Disagree) to 5 (Strongly Agree).
+    </div>
+
+    <form id="mainForm">
+        <div id="questions-list"></div>
+
+        <div class="results-area" id="results-box">
+            <h3 style="margin-top:0">Calculation Results</h3>
+            <div id="scoreDisplay"></div>
+            <div id="assessmentDisplay" class="assessment-text">
+                <hr style="border: 0; border-top: 1px solid #bcf0da; margin: 15px 0;">
+                <p><strong>Stage Explanations:</strong></p>
+                <small>
+                    • <strong>Precontemplation:</strong> Not yet acknowledging a need for change.<br>
+                    • <strong>Contemplation:</strong> Thinking about change but feeling ambivalent.<br>
+                    • <strong>Action:</strong> Actively taking steps to change behavior.<br>
+                    • <strong>Maintenance:</strong> Working to sustain changes and prevent relapse.
+                </small>
+            </div>
+        </div>
+
+        <div class="action-btns">
+            <button type="button" class="btn btn-clear" onclick="resetForm()">Clear</button>
+            <button type="button" id="calcBtn" class="btn btn-calc" style="display:none;" onclick="calculate()">Calculate</button>
+            <button type="button" class="btn btn-print" onclick="window.print()">Download PDF / Print</button>
+        </div>
+    </form>
+</div>
+
+<script>
+    let currentMode = 'simple';
+    const questions = [
+        "As far as I'm concerned, I don't have any problems that need changing.", "I think I might be ready for some self-improvement.",
+        "I am doing something about the problems that had been bothering me.", "It might be worthwhile to work on my problem.",
+        "I'm not the problem one. It doesn't make sense for me to be here.", "It worries me that I might slip back on a problem I have already changed.",
+        "I am finally doing some work on my problem.", "I've been thinking that I might want to change something about myself.",
+        "I have been successful in making some changes, but I'm not sure I can keep them up.", "At times my problem is difficult, but I'm working on it.",
+        "Being here is pretty much a waste of time for me.", "I'm hoping this place will help me understand myself better.",
+        "I guess I have faults, but there's nothing that I really need to change.", "I am really working hard to change.",
+        "I have a problem and I really think I should work on it.", "I'm not following through with what I had already changed as well as I hoped.",
+        "Even though I'm not always successful in changing, I am at least working on it.", "I thought once I resolved the problem I'd be free of it, but I still struggle.",
+        "I wish I had more ideas on how to solve my problem.", "I have started to make some changes but I could use some help.",
+        "Maybe this place will help me.", "I may need a boost right now to help me maintain the changes I've made.",
+        "I may be part of the problem, but I don't really think I am.", "I hope that someone here will have some good advice for me.",
+        "Anyone can talk about changing; I'm actually doing something about it.", "All this talk about psychology is boring. Why can't we just forget it?",
+        "I'm working to prevent myself from having a relapse of my problem.", "It's frustrating, but I feel I might be having a recurrence of a problem.",
+        "I have a problem and I really think I should work on it.", "I am actively working on my problem.",
+        "After all I've done, every now and then the problem comes back to haunt me.", "I would rather live with my faults than try to change them."
+    ];
+
+    const container = document.getElementById('questions-list');
+    questions.forEach((q, i) => {
+        container.innerHTML += `<div class="question-row"><span>${i+1}. ${q}</span><div class="options">${[1,2,3,4,5].map(v => `<label class="option"><input type="radio" name="q${i+1}" value="${v}"><br>${v}</label>`).join('')}</div></div>`;
+    });
+
+    function switchMode(mode, btn) {
+        currentMode = mode;
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        
+        document.getElementById('main-title').innerText = mode === 'simple' ? "Questionnaire" : (mode === 'scored' ? "Scored Questionnaire" : "Questionnaire & Assessment");
+        document.getElementById('calcBtn').style.display = mode === 'simple' ? 'none' : 'block';
+        document.getElementById('results-box').style.display = 'none';
+        document.getElementById('assessmentDisplay').style.display = mode === 'assessment' ? 'block' : 'none';
+    }
+
+    function calculate() {
+        const formData = new FormData(document.getElementById('mainForm'));
+        const scores = Array.from(formData.values()).map(Number);
+        if (scores.length < 32) { alert("Please answer all questions."); return; }
+
+        const pre = [1, 5, 11, 13, 23, 26, 29, 32].reduce((a, b) => a + scores[b-1], 0) / 8;
+        const cont = [2, 4, 8, 12, 15, 19, 21, 24].reduce((a, b) => a + scores[b-1], 0) / 8;
+        const act = [3, 7, 10, 14, 17, 20, 25, 30].reduce((a, b) => a + scores[b-1], 0) / 8;
+        const maint = [6, 9, 16, 18, 22, 27, 28, 31].reduce((a, b) => a + scores[b-1], 0) / 8;
+        const readiness = (cont + act + maint) - pre;
+
+        document.getElementById('results-box').style.display = 'block';
+        document.getElementById('scoreDisplay').innerHTML = `<strong>Readiness Score: ${readiness.toFixed(2)}</strong><br><small>Pre: ${pre.toFixed(1)} | Cont: ${cont.toFixed(1)} | Act: ${act.toFixed(1)} | Maint: ${maint.toFixed(1)}</small>`;
+    }
+
+    function resetForm() {
+        if(confirm("Clear all answers?")) { document.getElementById('mainForm').reset(); document.getElementById('results-box').style.display = 'none'; window.scrollTo(0,0); }
+    }
+</script>
+</body>
+</html>
