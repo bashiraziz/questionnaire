@@ -25,7 +25,12 @@
         input { padding: 10px; border: 1px solid var(--border); border-radius: 6px; font-size: 1rem; }
         
         .instructions { background: #eff6ff; padding: 15px; border-left: 4px solid var(--primary); margin-bottom: 25px; font-size: 0.95rem; }
-        .question-row { padding: 15px 0; border-bottom: 1px solid var(--border); }
+        
+        .question-row { padding: 15px 10px; border-bottom: 1px solid var(--border); border-radius: 6px; transition: background 0.3s; }
+        .question-row.error { background-color: #fef2f2; border: 1px solid var(--danger); }
+        .error-msg { color: var(--danger); font-size: 0.8rem; display: none; margin-top: 5px; font-weight: bold; }
+        .question-row.error .error-msg { display: block; }
+
         .options { display: flex; justify-content: space-between; margin-top: 10px; }
         .option { text-align: center; flex: 1; font-size: 0.75rem; cursor: pointer; }
         
@@ -45,7 +50,7 @@
             .tabs, .action-btns, .instructions, .btn-clear { display: none !important; }
             body { padding: 0; background: white; }
             .container { box-shadow: none; border: none; width: 100%; max-width: none; padding: 0; }
-            .question-row { page-break-inside: avoid; }
+            .question-row { page-break-inside: avoid; border: none; background: transparent !important; }
         }
     </style>
 </head>
@@ -83,18 +88,10 @@
             <div id="assessmentDisplay">
                 <h3 style="margin-bottom:10px;">Understanding the Stages</h3>
                 <div class="interpretation-grid">
-                    <div class="stage-card">
-                        <strong>Precontemplation:</strong> Indicates a lack of awareness that a problem exists or a reluctance to change.
-                    </div>
-                    <div class="stage-card">
-                        <strong>Contemplation:</strong> Shows you are thinking about your problem and considering the possibility of change.
-                    </div>
-                    <div class="stage-card">
-                        <strong>Action:</strong> Reflects that you are actively taking steps and working hard to change the problem.
-                    </div>
-                    <div class="stage-card">
-                        <strong>Maintenance:</strong> Indicates you have made changes and are focused on preventing a relapse.
-                    </div>
+                    <div class="stage-card"><strong>Precontemplation:</strong> Indicates a lack of awareness that a problem exists or a reluctance to change.</div>
+                    <div class="stage-card"><strong>Contemplation:</strong> Shows you are thinking about your problem and considering the possibility of change.</div>
+                    <div class="stage-card"><strong>Action:</strong> Reflects that you are actively taking steps and working hard to change the problem.</div>
+                    <div class="stage-card"><strong>Maintenance:</strong> Indicates you have made changes and are focused on preventing a relapse.</div>
                 </div>
             </div>
         </div>
@@ -114,7 +111,7 @@
         "I am doing something about the problems that had been bothering me.", "It might be worthwhile to work on my problem.",
         "I'm not the problem one. It doesn't make sense for me to be here.", "It worries me that I might slip back on a problem I have already changed.",
         "I am finally doing some work on my problem.", "I've been thinking that I might want to change something about myself.",
-        "I have been successful in making some changes, but I'm not sure I can keep them up.", "At times my problem is difficult, but I'm working on it.",
+        "I have been successful in making some changes, but I'm not sure I can keep them up.", "At times my problem is difficult, but I'working on it.",
         "Being here is pretty much a waste of time for me.", "I'm hoping this place will help me understand myself better.",
         "I guess I have faults, but there's nothing that I really need to change.", "I am really working hard to change.",
         "I have a problem and I really think I should work on it.", "I'm not following through with what I had already changed as well as I hoped.",
@@ -130,14 +127,24 @@
 
     const container = document.getElementById('questions-list');
     questions.forEach((q, i) => {
-        container.innerHTML += `<div class="question-row"><span>${i+1}. ${q}</span><div class="options">${[1,2,3,4,5].map(v => `<label class="option"><input type="radio" name="q${i+1}" value="${v}"><br>${v}</label>`).join('')}</div></div>`;
+        container.innerHTML += `
+            <div class="question-row" id="row-q${i+1}">
+                <span>${i+1}. ${q}</span>
+                <div class="options">
+                    ${[1,2,3,4,5].map(v => `<label class="option"><input type="radio" name="q${i+1}" value="${v}" onchange="removeError(this)"><br>${v}</label>`).join('')}
+                </div>
+                <div class="error-msg">Please answer this question.</div>
+            </div>`;
     });
+
+    function removeError(input) {
+        input.closest('.question-row').classList.remove('error');
+    }
 
     function switchMode(mode, btn) {
         currentMode = mode;
         document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
         btn.classList.add('active');
-        
         document.getElementById('main-title').innerText = mode === 'simple' ? "Questionnaire" : (mode === 'scored' ? "Scored Questionnaire" : "Questionnaire & Assessment");
         document.getElementById('calcBtn').style.display = mode === 'simple' ? 'none' : 'block';
         document.getElementById('results-box').style.display = 'none';
@@ -145,11 +152,24 @@
     }
 
     function calculate() {
-        const formData = new FormData(document.getElementById('mainForm'));
-        const scores = Array.from(formData.values()).map(Number);
+        let missing = [];
+        let scores = [];
         
-        if (scores.length < 32) { 
-            alert("Please answer all 32 questions before calculating."); 
+        for(let i=1; i<=32; i++) {
+            const radio = document.querySelector(`input[name="q${i}"]:checked`);
+            const row = document.getElementById(`row-q${i}`);
+            if(!radio) {
+                missing.push(i);
+                row.classList.add('error');
+            } else {
+                scores.push(Number(radio.value));
+                row.classList.remove('error');
+            }
+        }
+
+        if (missing.length > 0) { 
+            alert("The following questions were not answered: " + missing.join(", "));
+            document.getElementById(`row-q${missing[0]}`).scrollIntoView({ behavior: 'smooth', block: 'center' });
             return; 
         }
 
@@ -175,6 +195,7 @@
     function resetForm() {
         if(confirm("Are you sure you want to clear the entire form?")) { 
             document.getElementById('mainForm').reset(); 
+            document.querySelectorAll('.question-row').forEach(r => r.classList.remove('error'));
             document.querySelectorAll('input[type="text"], input[type="date"]').forEach(i => i.value = '');
             document.getElementById('results-box').style.display = 'none'; 
             window.scrollTo(0,0); 
